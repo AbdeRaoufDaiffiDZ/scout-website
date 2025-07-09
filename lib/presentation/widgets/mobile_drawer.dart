@@ -1,15 +1,22 @@
+// lib/presentation/widgets/mobile_drawer.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_svg_provider/flutter_svg_provider.dart';
 import 'package:scout/presentation/activityProvider%20.dart';
 
 class MobileDrawer extends StatelessWidget {
   final LocalizationProvider localization;
-  final VoidCallback onTap;
+  // Change onTap to specific scroll callbacks
+  final VoidCallback scrollToHero;
+  final VoidCallback scrollToActivities;
+  final VoidCallback scrollToContact;
+  final VoidCallback scrollToFooter;
 
   const MobileDrawer({
     super.key,
     required this.localization,
-    required this.onTap,
+    required this.scrollToHero,
+    required this.scrollToActivities,
+    required this.scrollToContact,
+    required this.scrollToFooter,
   });
 
   @override
@@ -19,63 +26,96 @@ class MobileDrawer extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: <Widget>[
           DrawerHeader(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.green.shade600, Colors.green.shade800],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+            decoration: BoxDecoration(color: Colors.green.shade700),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image(
-                  width: 70,
-                  height: 70,
-                  image: Svg(
-                    'https://upload.wikimedia.org/wikipedia/en/6/69/Algerian_Muslim_Scouts.svg',
-                    source: SvgSource.network,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                // You can add your logo here if desired
+                // Image.asset('assets/logo.png', height: 60),
                 Text(
                   localization.translate('brandName'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 24),
                 ),
                 Text(
                   localization.translate('groupName'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
           ),
           ListTile(
-            title: Text(localization.translate('navHome')),
+            leading: const Icon(Icons.home),
+            title: Text(localization.translate('home')),
+            onTap: scrollToHero,
+          ),
+          ListTile(
+            leading: const Icon(Icons.local_activity),
+            title: Text(localization.translate('activitiesHeadline')),
+            onTap: scrollToActivities,
+          ),
+          ListTile(
+            leading: const Icon(Icons.contact_mail),
+            title: Text(localization.translate('contactHeadline')),
+            onTap: scrollToContact,
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.info,
+            ), // Or a more relevant icon for footer
+            title: Text(localization.translate('footerHeadline')),
+            onTap: scrollToFooter,
+          ),
+          const Divider(), // Divider for language options
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Text(
+              localization.translate(
+                'language',
+              ), // Assuming 'language' translation
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+          ListTile(
+            title: Text(
+              'English',
+              style: TextStyle(
+                color: localization.locale.languageCode == 'en'
+                    ? Colors.green.shade900
+                    : Colors.black87,
+                fontWeight: localization.locale.languageCode == 'en'
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+            ),
             onTap: () {
-              Navigator.pop(context); // Close the drawer
-              onTap();
+              localization.setLocale('en');
+              localization.saveLocale('en');
+              Navigator.of(context).pop(); // Close drawer
             },
           ),
           ListTile(
-            title: Text(localization.translate('navActivities')),
+            title: Text(
+              'العربية',
+              style: TextStyle(
+                color: localization.locale.languageCode == 'ar'
+                    ? Colors.green.shade900
+                    : Colors.black87,
+                fontWeight: localization.locale.languageCode == 'ar'
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+            ),
             onTap: () {
-              Navigator.pop(context);
-              onTap();
-            },
-          ),
-          ListTile(
-            title: Text(localization.translate('navContact')),
-            onTap: () {
-              Navigator.pop(context);
-              onTap();
+              localization.setLocale('ar');
+              localization.saveLocale('ar');
+              Navigator.of(context).pop(); // Close drawer
             },
           ),
         ],

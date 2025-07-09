@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 // In main.js or server.js
 const corsOptions = {
-  origin: 'https://scout-website-1.onrender.com/', // Replace with your actual deployed Flutter URL
+  origin: 'https://scout-website-1.onrender.com', // Replace with your actual deployed Flutter URL
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 app.use(cors(corsOptions));
