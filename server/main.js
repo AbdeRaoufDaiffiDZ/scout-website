@@ -12,10 +12,14 @@ const authRouter = require('./routes/auth'); // New auth route
 const app = express();
 const PORT = process.env.PORT || 5000;
 // In main.js or server.js
+// In main.js or server.js
+const cors = require('cors');
+// ...
 const corsOptions = {
-  origin: 'https://your-flutter-app-name.onrender.com', // Replace with your actual deployed Flutter URL
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  origin: 'https://scout-web-admin.onrender.com', // <--- CORRECTED URL
+  optionsSuccessStatus: 200
 };
+app.use(cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(cors());
 app.use(express.json());
