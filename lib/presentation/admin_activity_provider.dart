@@ -14,7 +14,7 @@ class AdminActivityProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   final String _baseUrl =
-      'http://localhost:5000/api/activities'; // Your backend activities URL
+      'https://scout-website-f7rc.onrender.com/api/activities'; // Your backend activities URL
 
   Future<void> fetchActivities(String token) async {
     _isLoading = true;

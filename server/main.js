@@ -53,15 +53,15 @@ const User = require('./models/User');
 const createAdminUser = async () => {
     try {
         const adminExists = await User.findOne({ username: 'admin' });
-        if (!adminExists) {
-            const adminUser = new User({
-                username: 'admin',
-                password: 'adminpassword', // Change this in production!
-                role: 'admin'
-            });
-            await adminUser.save();
-            console.log('Default admin user created: admin/adminpassword');
-        }
+        // if (!adminExists) {
+        //     const adminUser = new User({
+        //         username: 'admin',
+        //         password: 'adminpassword', // Change this in production!
+        //         role: 'admin'
+        //     });
+        //     await adminUser.save();
+        //     console.log('Default admin user created: admin/adminpassword');
+        // }
     } catch (error) {
         console.error('Error creating default admin user:', error);
     }
