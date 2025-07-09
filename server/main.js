@@ -12,11 +12,9 @@ const authRouter = require('./routes/auth'); // New auth route
 const app = express();
 const PORT = process.env.PORT || 5000;
 // In main.js or server.js
-// In main.js or server.js
-// ...
 const corsOptions = {
-  origin: 'https://scout-web-admin.onrender.com', // <--- CORRECTED URL
-  optionsSuccessStatus: 200
+  origin: 'https://scout-website-1.onrender.com/', // Replace with your actual deployed Flutter URL
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -54,15 +52,15 @@ const User = require('./models/User');
 const createAdminUser = async () => {
     try {
         const adminExists = await User.findOne({ username: 'admin' });
-        // if (!adminExists) {
-        //     const adminUser = new User({
-        //         username: 'admin',
-        //         password: 'adminpassword', // Change this in production!
-        //         role: 'admin'
-        //     });
-        //     await adminUser.save();
-        //     console.log('Default admin user created: admin/adminpassword');
-        // }
+        if (!adminExists) {
+            const adminUser = new User({
+                username: 'admin',
+                password: 'adminpassword', // Change this in production!
+                role: 'admin'
+            });
+            await adminUser.save();
+            console.log('Default admin user created: admin/adminpassword');
+        }
     } catch (error) {
         console.error('Error creating default admin user:', error);
     }

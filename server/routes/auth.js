@@ -17,10 +17,9 @@ const generateToken = (id) => {
 // @access  Public
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    console.log('Login attempt:', { username, password });
+    
     try {
         // Check if user exists
-        console.log('Checking for user:', username);
         const user = await User.findOne({ username });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
