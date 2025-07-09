@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Activity = require('../models/Activity');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const {authorize } = require('../middleware/authMiddleware');
 
 // --- No Multer configuration needed if you are only uploading URLs ---
 // const multer = require('multer');
@@ -38,7 +38,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST a new activity (Protected: only admin) - Now receives JSON with 'pics' as array of URLs
-router.post('/', protect, authorize(['admin', 'editor']), async (req, res) => {
+router.post('/', authorize(['admin', 'editor']), async (req, res) => {
     const { date, pics, translations } = req.body; // pics will now be an array of URLs
 
     // Basic validation (you should add more robust validation)
@@ -62,7 +62,7 @@ router.post('/', protect, authorize(['admin', 'editor']), async (req, res) => {
 });
 
 // PUT/PATCH update an activity (Protected: only admin) - Now receives JSON with 'pics' as array of URLs
-router.put('/:id', protect, authorize(['admin', 'editor']), async (req, res) => {
+router.put('/:id', authorize(['admin', 'editor']), async (req, res) => {
     const { date, pics, translations } = req.body; // pics will now be an array of URLs
 
     try {
@@ -83,7 +83,7 @@ router.put('/:id', protect, authorize(['admin', 'editor']), async (req, res) => 
 });
 
 // DELETE an activity (Protected: only admin) - No change needed here
-router.delete('/:id', protect, authorize(['admin']), async (req, res) => {
+router.delete('/:id', authorize(['admin']), async (req, res) => {
     try {
         const activity = await Activity.findById(req.params.id);
         if (!activity) return res.status(404).json({ msg: 'Activity not found' });
