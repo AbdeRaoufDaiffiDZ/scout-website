@@ -13,7 +13,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 // In main.js or server.js
 // In main.js or server.js
-const cors = require('cors');
 // ...
 const corsOptions = {
   origin: 'https://scout-web-admin.onrender.com', // <--- CORRECTED URL
