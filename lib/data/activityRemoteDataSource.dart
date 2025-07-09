@@ -9,7 +9,8 @@ import 'package:http/http.dart' as http; // As 'http' for convenience
 class ActivityRemoteDataSource {
   // Replace this with the actual URL of your backend API endpoint
   // Make sure this URL is accessible from your Flutter web app (e.g., same origin or proper CORS setup on backend)
-  final String _baseUrl = 'http://localhost:5000/api/activities'; // Example URL
+  final String _baseUrl =
+      'https://scout-website-f7rc.onrender.com/api/activities'; // Example URL
 
   Future<List<Map<String, dynamic>>> fetchActivitiesData() async {
     try {

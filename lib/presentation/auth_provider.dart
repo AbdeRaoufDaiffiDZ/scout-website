@@ -16,7 +16,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _token != null;
 
   final String _baseUrl =
-      'http://localhost:5000/api/auth'; // Your backend auth URL
+      'https://scout-website-f7rc.onrender.com/api/auth'; // Your backend auth URL
 
   AuthProvider() {
     _loadToken();

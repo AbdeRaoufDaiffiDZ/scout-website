@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Flutter specific ignore
+.dart_tool/
+.idea/
+.vscode/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.vscode/
+# build/ # <--- Temporarily comment or remove this line when you want to commit build/web
+/ios/.symlinks
+/android/.gradle
+/server/.env
