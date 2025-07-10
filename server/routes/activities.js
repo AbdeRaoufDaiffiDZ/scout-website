@@ -10,8 +10,26 @@ require('dotenv').config();
 // GET all activities (Publicly accessible)
 router.get('/', async (req, res) => {
     try {
-        const activities = await Activity.find();
-        res.json(activities);
+      const page = parseInt(req.query.page) || 1; // Default to page 1
+        const limit = parseInt(req.query.limit) || 10; // Default to 10 activities per page
+        const skip = (page - 1) * limit;
+
+        // Fetch activities with pagination and sorting (e.g., by date descending)
+        const activities = await Activity.find()
+                                        .skip(skip)
+                                        .limit(limit)
+                                        .sort({ date: -1 }); // Sort by date descending (latest first)
+
+        // Get total count of activities for pagination metadata
+        const totalActivities = await Activity.countDocuments();
+
+        res.json({
+            activities,
+            currentPage: page,
+            totalPages: Math.ceil(totalActivities / limit),
+            totalActivities,
+            hasMore: (page * limit) < totalActivities // Check if there are more activities to fetch
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
