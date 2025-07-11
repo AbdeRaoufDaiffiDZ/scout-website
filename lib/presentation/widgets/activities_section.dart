@@ -1,28 +1,64 @@
+// ignore_for_file: deprecated_member_use
+
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:scout/domain/entities/activity%20.dart';
 import 'package:scout/domain/entities/activityTranslation%20.dart';
 import 'package:scout/presentation/activityProvider%20.dart';
-import 'package:scout/presentation/widgets/activity_detail_dialog.dart'; // Import the carousel slider
+import 'package:scout/presentation/widgets/activity_detail_dialog.dart';
 
-class ActivitiesSection extends StatelessWidget {
+class ActivitiesSection extends StatefulWidget {
   final LocalizationProvider localization;
   const ActivitiesSection({super.key, required this.localization});
+
+  @override
+  State<ActivitiesSection> createState() => _ActivitiesSectionState();
+}
+
+class _ActivitiesSectionState extends State<ActivitiesSection> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch initial activities when the widget is created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ActivityProvider>(context, listen: false).fetchActivities();
+    });
+
+    // Add listener for infinite scrolling
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        // User has scrolled to the end, load more activities
+        Provider.of<ActivityProvider>(
+          context,
+          listen: false,
+        ).loadMoreActivities();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(
       context,
-      listen: false,
-    );
+    ); // Listen to changes
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 60.0, horizontal: 16.0),
       color: Colors.grey.shade50,
       child: Column(
         children: [
           Text(
-            localization.translate('activitiesHeadline'),
+            widget.localization.translate('activitiesHeadline'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 32,
@@ -31,87 +67,116 @@ class ActivitiesSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          Consumer<ActivityProvider>(
-            builder: (context, activityProvider, child) {
-              if (activityProvider.isLoading) {
-                return Column(
+          // Use a ListView.builder or CustomScrollView for infinite scrolling
+          // GridView.builder directly inside Column with shrinkWrap: true
+          // might not work well with infinite scrolling if the parent is also scrollable.
+          // For simplicity, we'll keep GridView.builder but ensure its parent allows scrolling.
+          // For true infinite scrolling, it's often better to have the GridView/ListView
+          // be the primary scrollable widget or part of a CustomScrollView.
+          activityProvider.isLoading && activityProvider.activities.isEmpty
+              ? Column(
                   children: [
                     const CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
                     ),
                     const SizedBox(height: 20),
-                    Text(localization.translate('loadingActivities')),
+                    Text(widget.localization.translate('loadingActivities')),
                   ],
-                );
-              } else if (activityProvider.errorMessage != null) {
-                return Text(
-                  localization.translate('activitiesError'),
+                )
+              : activityProvider.errorMessage != null
+              ? Text(
+                  widget.localization.translate('activitiesError'),
                   style: const TextStyle(color: Colors.red),
                   textAlign: TextAlign.center,
-                );
-              } else if (activityProvider.activities.isEmpty) {
-                return Text(localization.translate('noActivities'));
-              } else {
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics:
-                      const NeverScrollableScrollPhysics(), // Disable scrolling of grid itself
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: MediaQuery.of(context).size.width > 1200
-                        ? 3
-                        : MediaQuery.of(context).size.width > 700
-                        ? 2
-                        : 1,
-                    crossAxisSpacing: 24,
-                    mainAxisSpacing: 24,
-                    childAspectRatio: 0.8, // Adjust based on content height
-                  ),
-                  itemCount: activityProvider.seeAll
-                      ? activityProvider.activities.length
-                      : activityProvider.activities.length > 3
-                      ? 3
-                      : activityProvider.activities.length,
-                  itemBuilder: (context, index) {
-                    final activity = activityProvider.activities[index];
-                    final activityLang =
-                        localization.locale.languageCode == 'ar'
-                        ? activity.translations['ar'] ??
-                              activity.translations['en']
-                        : activity.translations['en'] ??
-                              activity.translations['ar']; // Fallback
-
-                    return ActivityCard(
-                      activity: activity,
-                      activityLang:
-                          activityLang!, // Non-null because of fallback
-                      localization: localization,
-                    );
+                )
+              : activityProvider.activities.isEmpty &&
+                    !activityProvider.isLoading
+              ? Text(widget.localization.translate('noActivities'))
+              : NotificationListener<ScrollNotification>(
+                  onNotification: (ScrollNotification scrollInfo) {
+                    if (scrollInfo.metrics.pixels ==
+                            scrollInfo.metrics.maxScrollExtent &&
+                        activityProvider.hasMore &&
+                        !activityProvider.isFetchingMore) {
+                      activityProvider.loadMoreActivities();
+                      return true; // Indicate that the notification has been handled.
+                    }
+                    return false; // Continue bubbling the notification.
                   },
-                );
-              }
-            },
-          ),
+                  child: GridView.builder(
+                    controller: _scrollController, // Attach scroll controller
+                    shrinkWrap: true,
+                    // physics: const NeverScrollableScrollPhysics(), // REMOVE THIS for infinite scrolling
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: MediaQuery.of(context).size.width > 1200
+                          ? 3
+                          : MediaQuery.of(context).size.width > 700
+                          ? 2
+                          : 1,
+                      crossAxisSpacing: 24,
+                      mainAxisSpacing: 24,
+                      childAspectRatio: 0.8, // Adjust based on content height
+                    ),
+                    itemCount:
+                        activityProvider.activities.length +
+                        (activityProvider.isFetchingMore
+                            ? 1
+                            : 0), // Add 1 for loading indicator
+                    itemBuilder: (context, index) {
+                      if (index == activityProvider.activities.length) {
+                        // This is the loading indicator item
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.green,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                widget.localization.translate(
+                                  'loadingMoreActivities',
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final activity = activityProvider.activities[index];
+                      final activityLang =
+                          widget.localization.locale.languageCode == 'ar'
+                          ? activity.translations['ar'] ??
+                                activity.translations['en']
+                          : activity.translations['en'] ??
+                                activity.translations['ar']; // Fallback
+
+                      return ActivityCard(
+                        activity: activity,
+                        activityLang:
+                            activityLang!, // Non-null because of fallback
+                        localization: widget.localization,
+                      );
+                    },
+                  ),
+                ),
           const SizedBox(height: 40),
-          ElevatedButton(
-            onPressed: () {
-              // Action for "View All Activities"
-              activityProvider.toggleSeeAllActivities();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey.shade200,
-              foregroundColor: Colors.grey.shade700,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              shadowColor: Colors.black.withOpacity(0.1),
-              elevation: 3,
+          // The "View All Activities" button might not be needed with infinite scrolling,
+          // or its logic might need to change to reset pagination and show all from start.
+          // For now, I'll keep it but its behavior might be redundant.
+          if (!activityProvider.hasMore &&
+              !activityProvider.isLoading &&
+              !activityProvider.isFetchingMore)
+            Text(
+              widget.localization.translate('noMoreActivities'),
+              style: TextStyle(color: Colors.grey),
             ),
-            child: Text(
-              localization.translate('viewAllActivities'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
+
+          // Removed the toggleSeeAllActivities button as infinite scrolling handles "view all" implicitly
+          // If you still want a "View All" button that perhaps loads ALL activities at once (not recommended for large datasets)
+          // or resets the view, its logic would need to be re-evaluated.
         ],
       ),
     );
@@ -317,6 +382,7 @@ class _ActivityCardState extends State<ActivityCard> {
                               activity: widget.activity,
                               activityLang: widget.activityLang,
                               localization: widget.localization,
+                              isMobile: MediaQuery.of(context).size.width < 600,
                             );
                           },
                         );

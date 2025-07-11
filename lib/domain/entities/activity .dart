@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:scout/domain/entities/activityTranslation%20.dart';
 
 class Activity {

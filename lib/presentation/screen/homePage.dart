@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg_provider/flutter_svg_provider.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +8,7 @@ import 'package:scout/presentation/widgets/activities_section.dart';
 import 'package:scout/presentation/widgets/contact_us_section.dart';
 import 'package:scout/presentation/widgets/footer_section.dart';
 import 'package:scout/presentation/widgets/hero_section.dart';
-import 'package:scout/presentation/widgets/mobile_drawer.dart'; // Ensure this exists and is correctly implemented
+// Ensure this exists and is correctly implemented
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,10 +35,6 @@ class _HomePageState extends State<HomePage> {
         curve: Curves.easeInOut,
         alignment: 0.0, // Scroll to the top of the target widget
       );
-    }
-    // If the drawer is open, close it
-    if (Scaffold.of(context).isEndDrawerOpen) {
-      Navigator.of(context).pop();
     }
   }
 
@@ -303,24 +301,3 @@ class _HomePageState extends State<HomePage> {
 }
 
 // Helper Widget for AppBar Text Buttons
-class _AppBarTextButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-
-  const _AppBarTextButton({required this.text, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.green.shade700,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-}

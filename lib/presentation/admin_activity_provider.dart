@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:scout/data/activityRemoteDataSource.dart';
 import 'package:scout/domain/entities/activity%20.dart';
 import 'dart:convert';
 // import 'dart:typed_data'; // No longer needed if not handling file bytes
@@ -13,9 +14,6 @@ class AdminActivityProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  final String _baseUrl =
-      'https://scout-website-f7rc.onrender.com/api/activities'; // Your backend activities URL
-
   Future<void> fetchActivities(String token) async {
     _isLoading = true;
     _errorMessage = null;
@@ -23,7 +21,7 @@ class AdminActivityProvider extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse(_baseUrl),
+        Uri.parse("$baseUrl/api/activities"),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -61,7 +59,7 @@ class AdminActivityProvider extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse("$baseUrl/api/activities"),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -115,7 +113,7 @@ class AdminActivityProvider extends ChangeNotifier {
     try {
       final response = await http.put(
         // Or PATCH if your backend is configured for it
-        Uri.parse('$_baseUrl/$activityId'),
+        Uri.parse('$baseUrl/api/activities/$activityId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -162,7 +160,7 @@ class AdminActivityProvider extends ChangeNotifier {
 
     try {
       final response = await http.delete(
-        Uri.parse('$_baseUrl/$activityId'),
+        Uri.parse('$baseUrl/$activityId'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

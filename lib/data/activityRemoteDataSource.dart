@@ -1,36 +1,69 @@
-import 'dart:convert'; // For jsonDecode
-import 'package:http/http.dart' as http; // As 'http' for convenience
+// ignore_for_file: file_names
 
-// You might need these DTOs or models if your backend returns structured data
-// Ensure your Activity and ActivityTranslation models can be created from JSON
-// import 'package:scout/domain/entities/activity.dart'; // Assuming these exist
-// import 'package:scout/domain/entities/activityTranslation.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:scout/domain/entities/activity%20.dart';
+
+final String baseUrl = 'http://localhost:5000'; // Your backend activities URL
 
 class ActivityRemoteDataSource {
   // Replace this with the actual URL of your backend API endpoint
   // Make sure this URL is accessible from your Flutter web app (e.g., same origin or proper CORS setup on backend)
-  final String _baseUrl =
-      'https://scout-website-f7rc.onrender.com/api/activities'; // Example URL
-
-  Future<List<Map<String, dynamic>>> fetchActivitiesData() async {
+  Future<void> sendEmail({
+    required String name,
+    required String email,
+    required String subject,
+    required String message,
+  }) async {
     try {
-      final response = await http.get(Uri.parse(_baseUrl));
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/activities/send-email"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'subject': subject,
+          'message': message,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to send email: ${response.statusCode} ${response.reasonPhrase}',
+        );
+      }
+    } catch (e) {
+      // Handle network errors or other exceptions
+      throw Exception('Failed to connect to the server: $e');
+    }
+  }
+
+  // Modified to fetch paginated data
+  Future<List<Activity>> fetchActivitiesData({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/activities?page=$page&limit=$limit"),
+      );
 
       if (response.statusCode == 200) {
-        // If the server returns a 200 OK response, parse the JSON.
-        List<dynamic> jsonList = jsonDecode(response.body);
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        List<dynamic> activitiesJson = jsonResponse['activities'];
 
-        // Ensure that each item in the list is cast to Map<String, dynamic>
-        return jsonList.map((item) => item as Map<String, dynamic>).toList();
+        // You might want to return pagination metadata as well,
+        // but for now, we'll just return the list of activities.
+        // The provider will manage the pagination state.
+        return activitiesJson
+            .map((item) => Activity.fromJson(item as Map<String, dynamic>))
+            .toList();
       } else {
-        // If the server did not return a 200 OK response,
-        // throw an exception.
         throw Exception(
           'Failed to load activities: ${response.statusCode} ${response.reasonPhrase}',
         );
       }
     } catch (e) {
-      // Handle network errors or other exceptions
       throw Exception('Failed to connect to the server: $e');
     }
   }

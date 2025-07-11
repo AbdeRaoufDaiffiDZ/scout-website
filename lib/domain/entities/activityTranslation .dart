@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class ActivityTranslation {
   final String title;
   final String description;

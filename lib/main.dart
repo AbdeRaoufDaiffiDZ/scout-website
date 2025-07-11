@@ -1,4 +1,4 @@
-import 'dart:ui';
+// ignore_for_file: depend_on_referenced_packages
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';

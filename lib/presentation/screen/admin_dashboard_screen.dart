@@ -574,7 +574,7 @@ class _AddEditActivityDialogState extends State<AddEditActivityDialog> {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(

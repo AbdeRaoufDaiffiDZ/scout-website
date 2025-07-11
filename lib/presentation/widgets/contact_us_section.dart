@@ -1,4 +1,7 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:scout/presentation/activityProvider%20.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -48,7 +51,7 @@ class _ContactUsSectionState extends State<ContactUsSection> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.localization.translate('emailLaunchErrorGeneric') + ' $e',
+            '${widget.localization.translate('emailLaunchErrorGeneric')} $e',
           ),
         ),
       );
@@ -57,42 +60,32 @@ class _ContactUsSectionState extends State<ContactUsSection> {
   }
 
   // Function to send email
-  void _sendEmail() async {
+  void _sendEmail(activityProvider) async {
     if (_formKey.currentState!.validate()) {
-      final String recipientEmail = 'scoutrgb@gmail.com'; // Your target email
       final String subject = _subjectController.text.trim().isEmpty
           ? widget.localization.translate(
               'defaultEmailSubject',
             ) // Use translation if needed
           : _subjectController.text.trim();
-      final String body =
-          '${widget.localization.translate('emailBodyFromName')}: ${_nameController.text.trim()}\n'
-          '${widget.localization.translate('emailBodyFromEmail')}: ${_emailController.text.trim()}\n\n'
-          '${_messageController.text.trim()}';
 
-      // Encode subject and body for URL
-      final String encodedSubject = Uri.encodeComponent(subject);
-      final String encodedBody = Uri.encodeComponent(body);
-
-      final Uri mailtoUri = Uri.parse(
-        'mailto:$recipientEmail?subject=$encodedSubject&body=$encodedBody',
+      activityProvider.sendEmail(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        subject: subject,
+        message: _messageController.text.trim(),
       );
+      // bool launched = await launchExternalUrl(context, mailtoUri.toString());
+      // if (launched) {
+      //   // Optionally clear the form or show a success message
+      //   // ignore: use_build_context_synchronously
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text(widget.localization.translate('emailSentSuccess')),
+      //     ),
+      //   );
 
-      bool launched = await launchExternalUrl(context, mailtoUri.toString());
-      if (launched) {
-        // Optionally clear the form or show a success message
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.localization.translate('emailSentSuccess')),
-          ),
-        );
-        _nameController.clear();
-        _emailController.clear();
-        _subjectController.clear();
-        _messageController.clear();
-      }
-      // Error message is handled by launchExternalUrl
+      // }
+      // // Error message is handled by launchExternalUrl
     }
   }
 
@@ -107,6 +100,10 @@ class _ContactUsSectionState extends State<ContactUsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final activityProvider = Provider.of<ActivityProvider>(
+      context,
+      listen: false,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 60.0, horizontal: 16.0),
       decoration: BoxDecoration(
@@ -176,7 +173,9 @@ class _ContactUsSectionState extends State<ContactUsSection> {
                         const SizedBox(height: 20),
                         _ContactInfoRow(
                           icon: Icons.phone,
-                          text: '+213 697 346 015',
+                          text: widget.localization.locale.languageCode == 'ar'
+                              ? '015 346 697 213+'
+                              : '+213 697 346 015',
                           isRTL:
                               widget.localization.locale.languageCode == 'ar',
                           onTap: () =>
@@ -373,25 +372,30 @@ class _ContactUsSectionState extends State<ContactUsSection> {
                           const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed:
-                                  _sendEmail, // Call the _sendEmail function
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade700,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 18,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 5,
-                              ),
-                              child: Text(
-                                widget.localization.translate('formButton'),
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ),
+                            child: activityProvider.sendingEmail
+                                ? RefreshProgressIndicator()
+                                : ElevatedButton(
+                                    onPressed: () => _sendEmail(
+                                      activityProvider,
+                                    ), // Call the _sendEmail function
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green.shade700,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 18,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      elevation: 5,
+                                    ),
+                                    child: Text(
+                                      widget.localization.translate(
+                                        'formButton',
+                                      ),
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                  ),
                           ),
                         ],
                       ),
