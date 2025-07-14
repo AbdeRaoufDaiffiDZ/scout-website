@@ -3,43 +3,93 @@ import 'package:http/http.dart' as http;
 import 'package:scout/data/activityRemoteDataSource.dart';
 import 'package:scout/domain/entities/activity%20.dart';
 import 'dart:convert';
-// import 'dart:typed_data'; // No longer needed if not handling file bytes
+
+import 'package:scout/domain/repositories/activityRepository%20.dart';
 
 class AdminActivityProvider extends ChangeNotifier {
+  final ActivityRepository _repository;
+
   List<Activity> _activities = [];
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Pagination states
+  int _currentPage = 1;
+  final int _limit = 10; // Number of items per page
+  bool _hasMore = true; // True if there are more activities to load
+  bool _isFetchingMore = false;
+
+  AdminActivityProvider({required ActivityRepository repository})
+    : _repository =
+          repository; // To prevent multiple simultaneous "load more" calls
+
   List<Activity> get activities => _activities;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get hasMore => _hasMore;
+  bool get isFetchingMore => _isFetchingMore;
 
-  Future<void> fetchActivities(String token) async {
+  // Updated fetchActivities for initial load and refresh
+  Future<void> fetchActivities(String token, {bool refresh = false}) async {
+    if (_isLoading || _isFetchingMore) {
+      return; // Prevent multiple simultaneous fetches
+    }
+
+    if (refresh) {
+      _activities = [];
+      _currentPage = 1;
+      _hasMore = true;
+    }
+
+    if (!_hasMore && !refresh) return; // Don't fetch if no more activities
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await http.get(
-        Uri.parse("$baseUrl/api/activities"),
-        headers: {'Authorization': 'Bearer $token'},
+      final newActivities = await _repository.getActivities(
+        page: _currentPage,
+        limit: 10,
+        token: token,
       );
-
-      if (response.statusCode == 200) {
-        List<dynamic> jsonList = jsonDecode(response.body);
-        _activities = jsonList.map((json) => Activity.fromJson(json)).toList();
-        _isLoading = false;
-        notifyListeners();
-      } else {
-        _errorMessage =
-            jsonDecode(response.body)['message'] ??
-            'Failed to load activities: ${response.statusCode}';
-        _isLoading = false;
-        notifyListeners();
-      }
+      _activities.addAll(newActivities);
+      _currentPage++;
+      _hasMore =
+          newActivities.length ==
+          10; // Assuming 10 is the limit, if less, no more pages
     } catch (e) {
-      _errorMessage = 'Network error: $e';
+      _errorMessage = 'Failed to load activities: ${e.toString()}';
+      // Do not clear activities on error during incremental load, just show error
+    } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // New function to fetch more activities (for infinite scrolling)
+  Future<void> loadMoreActivities({bool refresh = false}) async {
+    if (_isLoading || _isFetchingMore || !_hasMore) {
+      return; // Prevent multiple fetches
+    }
+
+    _isFetchingMore = true;
+    _errorMessage = null; // Clear previous error
+    notifyListeners();
+
+    try {
+      final newActivities = await _repository.getActivities(
+        page: _currentPage,
+        limit: 10,
+      );
+      _activities.addAll(newActivities);
+      _currentPage++;
+      _hasMore =
+          newActivities.length == 10; // If less than limit, it's the last page
+    } catch (e) {
+      _errorMessage = 'Failed to load more activities: ${e.toString()}';
+    } finally {
+      _isFetchingMore = false;
       notifyListeners();
     }
   }
@@ -76,7 +126,7 @@ class AdminActivityProvider extends ChangeNotifier {
 
       if (response.statusCode == 201) {
         final newActivity = Activity.fromJson(jsonDecode(response.body));
-        _activities.add(newActivity);
+        _activities.insert(0, newActivity); // Add to the beginning of the list
         _isLoading = false;
         notifyListeners();
         return true;
@@ -112,7 +162,6 @@ class AdminActivityProvider extends ChangeNotifier {
 
     try {
       final response = await http.put(
-        // Or PATCH if your backend is configured for it
         Uri.parse('$baseUrl/api/activities/$activityId'),
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +209,7 @@ class AdminActivityProvider extends ChangeNotifier {
 
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/$activityId'),
+        Uri.parse('$baseUrl/api/activities/$activityId'), // Corrected URL
         headers: {'Authorization': 'Bearer $token'},
       );
 

@@ -3,12 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:scout/domain/entities/activity%20.dart';
 import 'package:scout/presentation/auth_provider.dart';
 import 'package:scout/presentation/admin_activity_provider.dart';
-// import 'package:image_picker_web/image_picker_web.dart'; // No longer needed
-// import 'dart:typed_data'; // No longer needed for raw image bytes
-
-// The AdminDashboardScreen remains mostly the same, as the core logic is in the dialog.
-// Just ensure the import for ActivityTranslation is correct if it's used directly here.
-// import 'package:scout/domain/entities/activityTranslation.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -18,22 +12,64 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchActivities();
+      _fetchActivities(context: context); // Initial fetch
+    });
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        // Trigger load more when scrolled to the end
+        _loadMoreActivities();
+      }
     });
   }
 
-  Future<void> _fetchActivities() async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchActivities({
+    required BuildContext context,
+    bool refresh = false,
+  }) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final adminActivityProvider = Provider.of<AdminActivityProvider>(
       context,
       listen: false,
     );
     if (authProvider.token != null) {
-      await adminActivityProvider.fetchActivities(authProvider.token!);
+      await adminActivityProvider.fetchActivities(
+        authProvider.token ?? '',
+        refresh: refresh,
+      );
+      if (adminActivityProvider.errorMessage != null) {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(adminActivityProvider.errorMessage!)),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadMoreActivities() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final adminActivityProvider = Provider.of<AdminActivityProvider>(
+      context,
+      listen: false,
+    );
+
+    if (authProvider.token != null &&
+        adminActivityProvider.hasMore &&
+        !adminActivityProvider.isFetchingMore) {
+      await adminActivityProvider.loadMoreActivities();
       if (adminActivityProvider.errorMessage != null) {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
@@ -49,8 +85,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       builder: (BuildContext context) {
         return AddEditActivityDialog(
           activityToEdit: activityToEdit,
-          onActivitySubmitted:
-              _fetchActivities, // Refresh list after submission
+          onActivitySubmitted: () => _fetchActivities(
+            refresh: true,
+            context: context,
+          ), // Refresh list after submission
         );
       },
     );
@@ -93,7 +131,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         content: Text('Activity deleted successfully!'),
                       ),
                     );
-                    _fetchActivities(); // Refresh list
+                    _fetchActivities(
+                      refresh: true,
+                      context: context,
+                    ); // Refresh list
                   } else if (adminActivityProvider.errorMessage != null) {
                     // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -141,9 +182,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       body: Consumer<AdminActivityProvider>(
         builder: (context, adminActivityProvider, child) {
-          if (adminActivityProvider.isLoading) {
+          if (adminActivityProvider.isLoading &&
+              adminActivityProvider.activities.isEmpty) {
             return const Center(child: CircularProgressIndicator());
-          } else if (adminActivityProvider.errorMessage != null) {
+          } else if (adminActivityProvider.errorMessage != null &&
+              adminActivityProvider.activities.isEmpty) {
             return Center(
               child: Text('Error: ${adminActivityProvider.errorMessage!}'),
             );
@@ -178,11 +221,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 Expanded(
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16.0),
-                    itemCount: adminActivityProvider.activities.length,
+                    itemCount:
+                        adminActivityProvider.activities.length +
+                        (adminActivityProvider.hasMore
+                            ? 1
+                            : 0), // Add 1 for the loading indicator at the end
                     itemBuilder: (context, index) {
+                      if (index == adminActivityProvider.activities.length) {
+                        if (adminActivityProvider.isFetchingMore) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        } else if (adminActivityProvider.hasMore) {
+                          // Optionally, show a "Load More" button if you don't want automatic loading
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: ElevatedButton(
+                                onPressed: _loadMoreActivities,
+                                child: const Text('Load More'),
+                              ),
+                            ),
+                          );
+                        } else {
+                          return const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(child: Text('No more activities')),
+                          );
+                        }
+                      }
+
                       final activity = adminActivityProvider.activities[index];
-                      // Display EN title for admin, or AR if EN is missing
                       final displayTitle =
                           activity.translations['en']?.title ??
                           activity.translations['ar']?.title ??
@@ -203,18 +275,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
-                                      // Ensure this URL matches how your backend serves static files
-                                      // e.g., 'http://localhost:5000/uploads/image.png'
-                                      image: NetworkImage(
-                                        activity.pics.first,
-                                      ), // Use URL directly
+                                      image: NetworkImage(activity.pics.first),
                                       fit: BoxFit.cover,
                                       onError: (exception, stackTrace) =>
                                           const Icon(Icons.broken_image),
                                     ),
                                   ),
                                 ),
-                              SizedBox(width: 16),
+                              const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -449,12 +517,11 @@ class _AddEditActivityDialogState extends State<AddEditActivityDialog> {
 
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Activity' : 'Add New Activity'),
-      // Remove the SizedBox around ListView.builder and put the children directly in Column
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Crucial for dialogs
+            mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: _dateController,
@@ -529,8 +596,6 @@ class _AddEditActivityDialogState extends State<AddEditActivityDialog> {
                 'Image URLs',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              // Directly map controllers to TextFormFields inside the Column
-              // No ListView.builder here
               ..._imageUrlControllers.asMap().entries.map((entry) {
                 final index = entry.key;
                 final controller = entry.value;
@@ -547,7 +612,6 @@ class _AddEditActivityDialogState extends State<AddEditActivityDialog> {
                             border: const OutlineInputBorder(),
                           ),
                           validator: (value) {
-                            // Validate if it's a URL, but allow empty if not needed
                             if (value!.isNotEmpty) {
                               try {
                                 final uri = Uri.parse(value);
@@ -562,8 +626,7 @@ class _AddEditActivityDialogState extends State<AddEditActivityDialog> {
                           },
                         ),
                       ),
-                      if (_imageUrlControllers.length >
-                          1) // Allow removing if more than one field
+                      if (_imageUrlControllers.length > 1)
                         IconButton(
                           icon: const Icon(
                             Icons.remove_circle,

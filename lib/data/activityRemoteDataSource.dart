@@ -4,7 +4,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:scout/domain/entities/activity%20.dart';
 
-final String baseUrl = 'http://localhost:5000'; // Your backend activities URL
+final String baseUrl =
+    'https://scout-website-f7rc.onrender.com'; // Your backend activities URL
 
 class ActivityRemoteDataSource {
   // Replace this with the actual URL of your backend API endpoint
@@ -42,10 +43,15 @@ class ActivityRemoteDataSource {
   Future<List<Activity>> fetchActivitiesData({
     int page = 1,
     int limit = 10,
+    String token = '',
   }) async {
     try {
       final response = await http.get(
         Uri.parse("$baseUrl/api/activities?page=$page&limit=$limit"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {

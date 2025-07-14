@@ -12,8 +12,16 @@ class ActivityRepositoryImpl implements ActivityRepository {
   ActivityRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<Activity>> getActivities({int page = 1, int limit = 10}) async {
-    return await remoteDataSource.fetchActivitiesData(page: page, limit: limit);
+  Future<List<Activity>> getActivities({
+    int page = 1,
+    int limit = 10,
+    String token = '',
+  }) async {
+    return await remoteDataSource.fetchActivitiesData(
+      page: page,
+      limit: limit,
+      token: token,
+    );
   }
 
   @override
@@ -22,6 +30,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
     required String email,
     required String subject,
     required String message,
+    String token = '',
   }) async {
     await remoteDataSource.sendEmail(
       name: name,

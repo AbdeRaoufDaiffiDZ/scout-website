@@ -8,11 +8,16 @@ library;
 import 'package:scout/domain/entities/activity .dart';
 
 abstract class ActivityRepository {
-  Future<List<Activity>> getActivities({int page = 1, int limit = 10});
+  Future<List<Activity>> getActivities({
+    int page = 1,
+    int limit = 10,
+    String token = '',
+  });
   Future<void> sendEmail({
     required String name,
     required String email,
     required String subject,
     required String message,
+    String token = '',
   });
 }

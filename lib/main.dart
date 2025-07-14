@@ -18,25 +18,39 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => AdminActivityProvider()),
-        ChangeNotifierProvider(
-          create: (_) => LocalizationProvider()..loadLocale(),
-        ),
+        // 1. Provide ActivityRemoteDataSource first, as it's the most basic dependency
         Provider<ActivityRemoteDataSource>(
           create: (_) => ActivityRemoteDataSource(),
         ),
-        Provider<ActivityRepository>(
-          create: (context) =>
-              ActivityRepositoryImpl(context.read<ActivityRemoteDataSource>()),
+        // 2. Provide ActivityRepository, which depends on ActivityRemoteDataSource
+        // Using ProxyProvider to get the instance of ActivityRemoteDataSource
+        ProxyProvider<ActivityRemoteDataSource, ActivityRepository>(
+          update: (context, remoteDataSource, previousRepository) =>
+              ActivityRepositoryImpl(remoteDataSource),
         ),
-        ChangeNotifierProvider(
+        // 3. Provide AdminActivityProvider, which depends on ActivityRepository
+        ChangeNotifierProxyProvider<ActivityRepository, AdminActivityProvider>(
+          create: (context) => AdminActivityProvider(
+            repository: context.read<ActivityRepository>(),
+          ),
+          update: (context, repository, previousAdminActivityProvider) =>
+              AdminActivityProvider(repository: repository),
+        ),
+        // 4. Provide ActivityProvider, which also depends on ActivityRepository
+        ChangeNotifierProxyProvider<ActivityRepository, ActivityProvider>(
           create: (context) =>
               ActivityProvider(context.read<ActivityRepository>())
                 ..fetchActivities(), // Fetch activities on app start
+          update: (context, repository, previousActivityProvider) =>
+              ActivityProvider(repository),
+        ),
+        // Other independent providers
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(
+          create: (_) => LocalizationProvider()..loadLocale(),
         ),
       ],
-      child: const ScoutsApp(),
+      child: const ScoutsApp(), // The main application widget
     ),
   );
 }
